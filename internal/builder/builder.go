@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"gobake/internal/display"
 )
 
 // Platform 定义目标平台
@@ -26,10 +28,10 @@ type BuildConfig struct {
 
 // 支持的平台列表
 var SupportedPlatforms = []Platform{
-	{"windows", "amd64"},
-	{"windows", "arm64"},
-	{"linux", "amd64"},
-	{"linux", "arm64"},
+	{OS: "windows", Arch: "amd64"},
+	{OS: "windows", Arch: "arm64"},
+	{OS: "linux", Arch: "amd64"},
+	{OS: "linux", Arch: "arm64"},
 }
 
 // 获取Go环境变量
@@ -63,16 +65,6 @@ func NewBuilder(config BuildConfig) *Builder {
 	}
 }
 
-// printEnvInfo 打印环境信息
-func (b *Builder) printEnvInfo(title string, goos, goarch, cgo string) {
-	fmt.Printf("\n%s\n", title)
-	fmt.Printf("====================================\n")
-	fmt.Printf("GOOS        = %s\n", goos)
-	fmt.Printf("GOARCH      = %s\n", goarch)
-	fmt.Printf("CGO_ENABLED = %s\n", cgo)
-	fmt.Printf("====================================\n")
-}
-
 // Build 执行构建过程
 func (b *Builder) Build() error {
 	// 创建输出目录
@@ -102,7 +94,7 @@ func (b *Builder) Build() error {
 
 // buildForPlatform 为特定平台执行构建
 func (b *Builder) buildForPlatform(platform Platform) error {
-	fmt.Printf("\n----- 正在构建 %s %s 版本 -----\n", platform.OS, platform.Arch)
+	display.PrintSubSection(fmt.Sprintf("构建 %s %s 版本", platform.OS, platform.Arch))
 
 	// 设置环境变量
 	os.Setenv("GOOS", platform.OS)
@@ -119,7 +111,11 @@ func (b *Builder) buildForPlatform(platform Platform) error {
 	currentCGO := getGoEnv("CGO_ENABLED")
 	
 	// 输出当前构建环境
-	b.printEnvInfo("构建环境配置", currentGOOS, currentGOARCH, currentCGO)
+	display.PrintInfo("构建环境配置:")
+	display.PrintFieldValue("GOOS", currentGOOS)
+	display.PrintFieldValue("GOARCH", currentGOARCH)
+	display.PrintFieldValue("CGO_ENABLED", currentCGO)
+	display.PrintSubDivider()
 
 	// 构建输出文件名
 	outputName := fmt.Sprintf("%s_%s_%s", b.config.PackageName, platform.OS, platform.Arch)
@@ -129,21 +125,23 @@ func (b *Builder) buildForPlatform(platform Platform) error {
 	outputPath := filepath.Join(b.config.OutputDir, outputName)
 
 	// 执行构建命令
+	display.PrintInfo("执行构建命令: go build -ldflags \"-w -s\" -o \"%s\"", outputPath)
 	cmd := exec.Command("go", "build", "-ldflags", "-w -s", "-o", outputPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
+		display.PrintError(fmt.Sprintf("构建失败: %v", err))
 		return fmt.Errorf("构建失败: %v", err)
 	}
 
-	fmt.Printf("[成功] %s/%s 构建完成: %s\n", platform.OS, platform.Arch, outputPath)
+	display.PrintSuccess(fmt.Sprintf("%s/%s 构建完成: %s", platform.OS, platform.Arch, outputPath))
 	return nil
 }
 
 // restoreEnv 恢复原始环境变量
 func (b *Builder) restoreEnv() error {
-	fmt.Println("\n----- 正在恢复原始环境 -----")
+	display.PrintSubSection("恢复环境变量")
 	
 	for key, value := range b.originalEnv {
 		if err := os.Setenv(key, value); err != nil {
@@ -157,12 +155,10 @@ func (b *Builder) restoreEnv() error {
 	currentCGO := getGoEnv("CGO_ENABLED")
 	
 	// 输出恢复后的环境
-	fmt.Printf("\n环境已恢复\n")
-	fmt.Printf("====================================\n")
-	fmt.Printf("GOOS        = %s\n", currentGOOS)
-	fmt.Printf("GOARCH      = %s\n", currentGOARCH)
-	fmt.Printf("CGO_ENABLED = %s\n", currentCGO)
-	fmt.Printf("====================================\n")
+	display.PrintInfo("环境已恢复:")
+	display.PrintFieldValue("GOOS", currentGOOS)
+	display.PrintFieldValue("GOARCH", currentGOARCH)
+	display.PrintFieldValue("CGO_ENABLED", currentCGO)
 	
 	return nil
 } 
