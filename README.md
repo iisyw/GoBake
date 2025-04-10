@@ -1,26 +1,34 @@
 # GoBake
 
-GoBake 是一个灵活的 Go 多平台构建工具，它提供了友好的交互式命令行界面，帮助开发者轻松构建支持多种目标平台的 Go 应用程序。
+GoBake 是一个灵活的 Go 多平台构建工具，它提供了友好的交互式命令行界面，帮助开发者轻松构建支持多种目标平台的 Go 应用程序。无需手动设置复杂的环境变量或记忆繁琐的命令参数，通过简单的交互式问答即可完成跨平台构建任务。
 
 ## 功能特性
 
-- 支持多平台构建 (Windows/Linux, AMD64/ARM64)
-- 灵活的 CGO 配置选项
-- 自定义输出目录
-- 交互式平台选择
-- 美观的命令行界面
-- 自动保存和恢复环境设置
-- 跨平台支持 (Windows, Linux, macOS)
+- **多平台构建**：支持一次性构建多种平台（Windows/Linux）和架构（AMD64/ARM64）的可执行文件
+- **灵活的 CGO 配置**：可根据需求轻松启用或禁用 CGO 功能
+- **自定义输出目录**：可指定构建产物的输出路径，方便管理不同版本的构建结果
+- **交互式平台选择**：通过简单的交互式界面选择需要构建的目标平台
+- **美观的命令行界面**：使用彩色和格式化输出，提供清晰直观的操作体验
+- **自动环境管理**：自动保存和恢复环境变量设置，不影响系统的全局配置
+- **跨平台工具支持**：本工具自身可在 Windows、Linux 和 macOS 平台上运行
+- **终端自适应**：根据不同平台的终端宽度自动调整显示格式，提供最佳视觉体验
 
 ## 安装
 
+### 方法一：直接下载二进制文件
+
+从 [Releases 页面](https://github.com/iisyw/gobake/releases) 下载适合你操作系统的可执行文件。
+
+### 方法二：从源码构建
+
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/gobake.git
+git clone https://github.com/iisyw/gobake.git
 cd gobake
 
 # 构建工具
-go build -o gobake
+go build -o gobake      # Linux/macOS
+go build -o gobake.exe  # Windows
 ```
 
 ## 使用方法
@@ -29,13 +37,30 @@ go build -o gobake
 2. 运行 GoBake 工具
 
 ```bash
-path/to/gobake
+path/to/gobake  # Linux/macOS
+path\to\gobake.exe  # Windows
 ```
 
 3. 按照交互式提示进行选择：
-   - 选择输出目录
-   - 配置 CGO 是否启用
-   - 选择目标平台
+   - 选择输出目录：默认为 `./build`，可以根据需要自定义
+   - 配置 CGO 是否启用：根据项目需求选择是否启用 CGO 支持
+   - 选择目标平台：可以选择构建所有支持的平台，或者指定特定的平台
+
+### 命令行参数
+
+GoBake 同时支持命令行参数，用于自动化构建流程：
+
+```bash
+# 查看帮助信息
+gobake --help
+
+# 使用命令行参数进行构建（待实现）
+gobake --output=./dist --cgo=0 --platforms=windows/amd64,linux/amd64
+```
+
+## 配置文件支持
+
+GoBake 将在未来版本中支持配置文件，以便在项目中保存常用的构建配置，更方便地进行批量构建。
 
 ## 示例输出
 
@@ -132,18 +157,80 @@ CGO_ENABLED = 1
 
 ## 构建详情
 
+### 输出文件命名规则
+
 构建的输出文件名格式：`{packageName}_{os}_{arch}[.exe]`
 
 例如：
 
-- `myapp_windows_amd64.exe`
-- `myapp_linux_amd64`
-- `myapp_linux_arm64`
+- `myapp_windows_amd64.exe` - Windows 64 位版本
+- `myapp_linux_amd64` - Linux 64 位版本
+- `myapp_linux_arm64` - Linux ARM64 版本（如树莓派等设备）
 
-## 贡献
+### 构建优化
 
-欢迎提交 Pull Request 或 Issue 来改进这个工具。
+GoBake 自动应用以下构建优化：
+
+- 使用 `-ldflags "-w -s"` 减小可执行文件体积
+  - `-w`: 禁用 DWARF 调试信息
+  - `-s`: 禁用符号表
+
+### 环境变量设置
+
+GoBake 会临时修改以下环境变量用于构建，并在构建结束后恢复原始值：
+
+- `GOOS`: 目标操作系统
+- `GOARCH`: 目标系统架构
+- `CGO_ENABLED`: CGO 是否启用
+
+## 常见问题解答
+
+### Q: 为什么我的 CGO 项目在跨平台构建时失败？
+
+A: CGO 需要目标平台的 C 编译器。跨平台构建 CGO 项目通常需要设置交叉编译工具链。
+对于大多数纯 Go 项目，建议禁用 CGO（设置 `CGO_ENABLED=0`）来简化跨平台构建。
+
+### Q: GoBake 支持哪些 Go 版本？
+
+A: GoBake 支持 Go 1.12 及以上版本。推荐使用最新的稳定版 Go。
+
+### Q: 如何添加其他平台支持？
+
+A: 当前版本支持 Windows 和 Linux 的 AMD64 和 ARM64 架构。如需更多平台，可以修改
+`builder.SupportedPlatforms` 变量添加其他 GOOS/GOARCH 组合。
+
+### Q: 如何设置额外的构建标志和参数？
+
+A: 当前版本使用预设的构建参数。未来版本将增加自定义构建参数的支持。
+
+## 未来计划
+
+- [ ] 支持通过配置文件进行批量构建
+- [ ] 支持自定义构建标志和参数
+- [ ] 增加更多平台支持（macOS, FreeBSD 等）
+- [ ] 添加构建缓存功能加速重复构建
+- [ ] 支持生成压缩包和安装程序
+- [ ] 集成版本信息和构建时间戳注入
+- [ ] 支持上传发布到常见平台（GitHub Releases, GitLab 等）
+
+## 贡献指南
+
+欢迎提交 Pull Request 或 Issue 来改进这个工具！
+
+1. Fork 此仓库
+2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
+3. 提交你的更改 (`git commit -m 'Add some amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 打开一个 Pull Request
+
+## 技术架构
+
+GoBake 由以下核心组件构成：
+
+- **CLI 模块**：处理用户交互和命令行参数
+- **Builder 模块**：执行构建逻辑和环境管理
+- **Display 模块**：提供美观的终端输出格式
 
 ## 许可证
 
-MIT
+本项目采用 MIT 许可证 - 详情请参阅 [LICENSE](LICENSE) 文件。

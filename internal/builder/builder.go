@@ -68,6 +68,7 @@ func NewBuilder(config BuildConfig) *Builder {
 // Build 执行构建过程
 func (b *Builder) Build() error {
 	// 创建输出目录
+	display.PrintInfo("创建输出目录: %s", b.config.OutputDir)
 	if err := os.MkdirAll(b.config.OutputDir, 0755); err != nil {
 		return fmt.Errorf("创建输出目录失败: %v", err)
 	}
@@ -75,9 +76,11 @@ func (b *Builder) Build() error {
 	// 如果选择构建所有平台
 	if b.config.BuildAllPlatforms {
 		b.config.Platforms = SupportedPlatforms
+		display.PrintInfo("使用所有支持的平台进行构建")
 	}
 
 	// 对每个目标平台执行构建
+	display.PrintHeader(fmt.Sprintf("准备构建 %d 个目标平台", len(b.config.Platforms)))
 	for _, platform := range b.config.Platforms {
 		if err := b.buildForPlatform(platform); err != nil {
 			return fmt.Errorf("构建 %s/%s 失败: %v", platform.OS, platform.Arch, err)
@@ -111,7 +114,7 @@ func (b *Builder) buildForPlatform(platform Platform) error {
 	currentCGO := getGoEnv("CGO_ENABLED")
 	
 	// 输出当前构建环境
-	display.PrintInfo("构建环境配置:")
+	display.PrintHeader("构建环境配置:")
 	display.PrintFieldValue("GOOS", currentGOOS)
 	display.PrintFieldValue("GOARCH", currentGOARCH)
 	display.PrintFieldValue("CGO_ENABLED", currentCGO)
@@ -125,7 +128,8 @@ func (b *Builder) buildForPlatform(platform Platform) error {
 	outputPath := filepath.Join(b.config.OutputDir, outputName)
 
 	// 执行构建命令
-	display.PrintInfo("执行构建命令: go build -ldflags \"-w -s\" -o \"%s\"", outputPath)
+	cmdStr := fmt.Sprintf("go build -ldflags \"-w -s\" -o \"%s\"", outputPath)
+	display.PrintCommand(cmdStr)
 	cmd := exec.Command("go", "build", "-ldflags", "-w -s", "-o", outputPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -144,6 +148,7 @@ func (b *Builder) restoreEnv() error {
 	display.PrintSubSection("恢复环境变量")
 	
 	for key, value := range b.originalEnv {
+		display.PrintInfo("恢复 %s = %s", key, value)
 		if err := os.Setenv(key, value); err != nil {
 			return fmt.Errorf("恢复环境变量 %s 失败: %v", key, err)
 		}
@@ -155,7 +160,7 @@ func (b *Builder) restoreEnv() error {
 	currentCGO := getGoEnv("CGO_ENABLED")
 	
 	// 输出恢复后的环境
-	display.PrintInfo("环境已恢复:")
+	display.PrintHeader("环境已恢复:")
 	display.PrintFieldValue("GOOS", currentGOOS)
 	display.PrintFieldValue("GOARCH", currentGOARCH)
 	display.PrintFieldValue("CGO_ENABLED", currentCGO)

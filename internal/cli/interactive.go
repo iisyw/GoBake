@@ -61,7 +61,7 @@ func printCurrentEnv() {
 func StartInteractiveBuild() error {
 	// 在开始时立即显示当前环境
 	display.PrintSection("GoBake 多平台构建工具")
-	display.PrintInfo("版本: 1.0.0")
+	display.PrintHighlight("版本: 1.0.0")
 	
 	printCurrentEnv()
 	
@@ -77,6 +77,7 @@ func StartInteractiveBuild() error {
 	config.PackageName = filepath.Base(currentDir)
 	
 	display.PrintEmptyLine()
+	display.PrintHeader("项目信息")
 	display.PrintInfo("当前项目目录: %s", currentDir)
 	display.PrintInfo("提取的包名: %s", config.PackageName)
 
@@ -84,14 +85,14 @@ func StartInteractiveBuild() error {
 
 	// 1. 询问是否使用默认输出目录
 	display.PrintSubSection("配置输出目录")
-	fmt.Printf("是否使用默认输出目录? (当前: %s, Y/n): ", config.OutputDir)
+	display.PrintPrompt(fmt.Sprintf("是否使用默认输出目录? (当前: %s, Y/n): ", config.OutputDir))
 	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(strings.ToLower(answer)) == "n" {
-		fmt.Print("请输入自定义输出目录路径: ")
+		display.PrintInputPrompt("请输入自定义输出目录路径: ")
 		if customDir, err := reader.ReadString('\n'); err == nil {
 			config.OutputDir = strings.TrimSpace(customDir)
 		}
 	}
-	display.PrintInfo("输出目录设置为: %s", config.OutputDir)
+	display.PrintSuccess(fmt.Sprintf("输出目录设置为: %s", config.OutputDir))
 
 	// 2. 询问是否启用 CGO
 	display.PrintSubSection("配置CGO选项")
@@ -111,7 +112,7 @@ func StartInteractiveBuild() error {
 		promptFormat = "y/N"  // CGO默认禁用
 	}
 	
-	fmt.Printf("是否启用 CGO? (当前: %s, %s): ", currentCGO, promptFormat)
+	display.PrintPrompt(fmt.Sprintf("是否启用 CGO? (当前: %s, %s): ", currentCGO, promptFormat))
 		
 	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(answer) != "" {
 		if strings.TrimSpace(strings.ToLower(answer)) == "y" {
@@ -139,20 +140,21 @@ func StartInteractiveBuild() error {
 
 	// 3. 询问是否构建所有平台
 	display.PrintSubSection("选择目标平台")
-	fmt.Print("是否构建所有支持的平台和架构? (Y/n): ")
+	display.PrintPrompt("是否构建所有支持的平台和架构? (Y/n): ")
 	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(strings.ToLower(answer)) == "n" {
 		config.BuildAllPlatforms = false
 		
 		// 显示可用平台列表
 		display.PrintEmptyLine()
-		display.PrintInfo("可用平台:")
+		display.PrintHeader("可用平台:")
 		display.PrintInfo("1. Windows AMD64")
 		display.PrintInfo("2. Windows ARM64")
 		display.PrintInfo("3. Linux AMD64")
 		display.PrintInfo("4. Linux ARM64")
 
 		// 获取用户选择
-		fmt.Print("\n请输入平台编号（用空格分隔，例如 '1 3 4'）: ")
+		display.PrintEmptyLine()
+		display.PrintInputPrompt("请输入平台编号（用空格分隔，例如 '1 3 4'）: ")
 		if numbers, err := reader.ReadString('\n'); err == nil {
 			selected := make(map[int]bool)
 			for _, num := range strings.Fields(numbers) {
@@ -178,7 +180,7 @@ func StartInteractiveBuild() error {
 				// 根据选择添加平台
 				var platforms []builder.Platform
 				display.PrintEmptyLine()
-				display.PrintInfo("已选择的平台:")
+				display.PrintHeader("已选择的平台:")
 				if selected[1] {
 					platforms = append(platforms, builder.Platform{OS: "windows", Arch: "amd64"})
 					display.PrintInfo("- Windows AMD64")
@@ -214,7 +216,7 @@ func StartInteractiveBuild() error {
 
 	display.PrintSection("构建完成")
 	display.PrintSuccess("所有版本构建成功")
-	display.PrintInfo("文件已生成在 %s 目录中", config.OutputDir)
+	display.PrintHighlight(fmt.Sprintf("文件已生成在 %s 目录中", config.OutputDir))
 	
 	display.PrintEmptyLine()
 	display.PrintInfo("环境变量已恢复到原始状态")
