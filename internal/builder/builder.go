@@ -24,6 +24,7 @@ type BuildConfig struct {
 	Platforms         []Platform
 	PackageName       string
 	BuildAllPlatforms bool
+	GoCommand         string // 存储用户选择的go命令，如go、go120、go123等
 }
 
 // 支持的平台列表
@@ -118,6 +119,7 @@ func (b *Builder) buildForPlatform(platform Platform) error {
 	display.PrintFieldValue("GOOS", currentGOOS)
 	display.PrintFieldValue("GOARCH", currentGOARCH)
 	display.PrintFieldValue("CGO_ENABLED", currentCGO)
+	display.PrintFieldValue("GO命令", b.config.GoCommand)
 	display.PrintSubDivider()
 
 	// 构建输出文件名
@@ -128,9 +130,9 @@ func (b *Builder) buildForPlatform(platform Platform) error {
 	outputPath := filepath.Join(b.config.OutputDir, outputName)
 
 	// 执行构建命令
-	cmdStr := fmt.Sprintf("go build -ldflags \"-w -s\" -o \"%s\"", outputPath)
+	cmdStr := fmt.Sprintf("%s build -ldflags \"-w -s\" -o \"%s\"", b.config.GoCommand, outputPath)
 	display.PrintCommand(cmdStr)
-	cmd := exec.Command("go", "build", "-ldflags", "-w -s", "-o", outputPath)
+	cmd := exec.Command(b.config.GoCommand, "build", "-ldflags", "-w -s", "-o", outputPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

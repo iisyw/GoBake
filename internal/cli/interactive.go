@@ -67,6 +67,7 @@ func StartInteractiveBuild() error {
 	
 	config := builder.BuildConfig{
 		OutputDir: "./build",
+		GoCommand: "go", // 默认使用标准的go命令
 	}
 
 	// 获取当前目录名作为包名
@@ -138,7 +139,22 @@ func StartInteractiveBuild() error {
 		}
 	}
 
-	// 3. 询问是否构建所有平台
+	// 3. 询问使用哪个Go命令
+	display.PrintSubSection("配置Go命令")
+	display.PrintPrompt(fmt.Sprintf("是否使用默认Go命令? (当前: %s, Y/n): ", config.GoCommand))
+	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(strings.ToLower(answer)) == "n" {
+		display.PrintInfo("您可以指定使用特定的Go版本命令，例如go120、go123等")
+		display.PrintInputPrompt("请输入Go命令: ")
+		if customCmd, err := reader.ReadString('\n'); err == nil {
+			customCmd = strings.TrimSpace(customCmd)
+			if customCmd != "" {
+				config.GoCommand = customCmd
+			}
+		}
+	}
+	display.PrintSuccess(fmt.Sprintf("Go命令设置为: %s", config.GoCommand))
+
+	// 4. 询问是否构建所有平台
 	display.PrintSubSection("选择目标平台")
 	display.PrintPrompt("是否构建所有支持的平台和架构? (Y/n): ")
 	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(strings.ToLower(answer)) == "n" {
