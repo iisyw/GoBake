@@ -30,18 +30,18 @@ func getGoEnv(name string) string {
 // 打印当前环境信息
 func printCurrentEnv() {
 	display.PrintSection("当前系统环境")
-	
+
 	// 使用go env命令获取实际环境设置，而不是从环境变量读取
 	goos := getGoEnv("GOOS")
 	if goos == "" {
 		goos = runtime.GOOS
 	}
-	
+
 	goarch := getGoEnv("GOARCH")
 	if goarch == "" {
 		goarch = runtime.GOARCH
 	}
-	
+
 	cgoEnabled := getGoEnv("CGO_ENABLED")
 	if cgoEnabled == "" {
 		// Go默认值
@@ -51,7 +51,7 @@ func printCurrentEnv() {
 			cgoEnabled = "1"
 		}
 	}
-	
+
 	display.PrintFieldValue("GOOS", goos)
 	display.PrintFieldValue("GOARCH", goarch)
 	display.PrintFieldValue("CGO_ENABLED", cgoEnabled)
@@ -62,9 +62,9 @@ func StartInteractiveBuild() error {
 	// 在开始时立即显示当前环境
 	display.PrintSection("GoBake 多平台构建工具")
 	display.PrintHighlight("版本: 1.0.0")
-	
+
 	printCurrentEnv()
-	
+
 	config := builder.BuildConfig{
 		OutputDir: "./build",
 		GoCommand: "go", // 默认使用标准的go命令
@@ -76,7 +76,7 @@ func StartInteractiveBuild() error {
 		return fmt.Errorf("获取当前目录失败: %v", err)
 	}
 	config.PackageName = filepath.Base(currentDir)
-	
+
 	display.PrintEmptyLine()
 	display.PrintHeader("项目信息")
 	display.PrintInfo("当前项目目录: %s", currentDir)
@@ -104,17 +104,17 @@ func StartInteractiveBuild() error {
 		defaultChoice = "y"
 		config.CGOEnabled = true
 	}
-	
+
 	// 正确显示默认选项：大写字母表示默认选项
 	var promptFormat string
 	if defaultChoice == "y" {
-		promptFormat = "Y/n"  // CGO默认启用
+		promptFormat = "Y/n" // CGO默认启用
 	} else {
-		promptFormat = "y/N"  // CGO默认禁用
+		promptFormat = "y/N" // CGO默认禁用
 	}
-	
+
 	display.PrintPrompt(fmt.Sprintf("是否启用 CGO? (当前: %s, %s): ", currentCGO, promptFormat))
-		
+
 	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(answer) != "" {
 		if strings.TrimSpace(strings.ToLower(answer)) == "y" {
 			config.CGOEnabled = true
@@ -156,10 +156,13 @@ func StartInteractiveBuild() error {
 
 	// 4. 询问是否构建所有平台
 	display.PrintSubSection("选择目标平台")
-	display.PrintPrompt("是否构建所有支持的平台和架构? (Y/n): ")
-	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(strings.ToLower(answer)) == "n" {
+	display.PrintPrompt("是否构建所有支持的平台和架构? (y/N): ")
+	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(strings.ToLower(answer)) == "y" {
+		config.BuildAllPlatforms = true
+		display.PrintSuccess("将构建所有支持的平台和架构")
+	} else {
 		config.BuildAllPlatforms = false
-		
+
 		// 显示可用平台列表
 		display.PrintEmptyLine()
 		display.PrintHeader("可用平台:")
@@ -216,14 +219,11 @@ func StartInteractiveBuild() error {
 				config.Platforms = platforms
 			}
 		}
-	} else {
-		config.BuildAllPlatforms = true
-		display.PrintSuccess("将构建所有支持的平台和架构")
 	}
 
 	// 创建并执行构建器
 	b := builder.NewBuilder(config)
-	
+
 	display.PrintSection("开始构建过程")
 	if err := b.Build(); err != nil {
 		display.PrintError(err.Error())
@@ -233,11 +233,11 @@ func StartInteractiveBuild() error {
 	display.PrintSection("构建完成")
 	display.PrintSuccess("所有版本构建成功")
 	display.PrintHighlight(fmt.Sprintf("文件已生成在 %s 目录中", config.OutputDir))
-	
+
 	display.PrintEmptyLine()
 	display.PrintInfo("环境变量已恢复到原始状态")
 	display.PrintInfo("感谢使用 GoBake 多平台构建工具")
 	display.PrintDivider()
 
 	return nil
-} 
+}
