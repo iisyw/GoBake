@@ -97,23 +97,26 @@ func StartInteractiveBuild() error {
 
 	// 2. 询问是否启用 CGO
 	display.PrintSubSection("配置CGO选项")
-	// 获取当前CGO状态
-	currentCGO := getGoEnv("CGO_ENABLED")
-	defaultChoice := "n"
-	if currentCGO == "1" {
-		defaultChoice = "y"
-		config.CGOEnabled = true
+	display.PrintInfo("正在分析项目依赖以检测CGO需求...")
+	cgoRequired, err := builder.IsCGORequired(".")
+	if err != nil {
+		display.PrintWarning(fmt.Sprintf("CGO检测失败: %v", err))
+		// 在检测失败时，退回旧的逻辑
+		cgoRequired = getGoEnv("CGO_ENABLED") == "1"
 	}
 
-	// 正确显示默认选项：大写字母表示默认选项
-	var promptFormat string
-	if defaultChoice == "y" {
-		promptFormat = "Y/n" // CGO默认启用
+	config.CGOEnabled = cgoRequired // 设置默认值
+
+	var promptFormat, promptMessage string
+	if cgoRequired {
+		promptFormat = "Y/n"
+		promptMessage = "检测到项目依赖需要 CGO，是否启用?"
 	} else {
-		promptFormat = "y/N" // CGO默认禁用
+		promptFormat = "y/N"
+		promptMessage = "未检测到项目依赖需要 CGO，是否启用?"
 	}
 
-	display.PrintPrompt(fmt.Sprintf("是否启用 CGO? (当前: %s, %s): ", currentCGO, promptFormat))
+	display.PrintPrompt(fmt.Sprintf("%s (%s): ", promptMessage, promptFormat))
 
 	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(answer) != "" {
 		if strings.TrimSpace(strings.ToLower(answer)) == "y" {

@@ -11,6 +11,23 @@ import (
 	"gobake/internal/display"
 )
 
+// IsCGORequired checks if the project in the given path requires CGO.
+// It does this by checking for `import "C"` in any non-standard dependency.
+func IsCGORequired(path string) (bool, error) {
+	// This command lists all dependencies, and for each non-standard package,
+	// it checks if "C" is in its imports. If so, it prints "T".
+	cmd := exec.Command("go", "list", "-f", `{{if not .Standard}}{{range .Imports}}{{if eq . "C"}}T{{end}}{{end}}{{end}}`, "-deps", "./...")
+	cmd.Dir = path
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return false, fmt.Errorf("failed to check for CGO requirement: %v", err)
+	}
+	// If there is any output, it means `import "C"` was found in a non-standard package.
+	return strings.TrimSpace(out.String()) != "", nil
+}
+
 // Platform 定义目标平台
 type Platform struct {
 	OS   string
@@ -168,4 +185,4 @@ func (b *Builder) restoreEnv() error {
 	display.PrintFieldValue("CGO_ENABLED", currentCGO)
 	
 	return nil
-} 
+}
