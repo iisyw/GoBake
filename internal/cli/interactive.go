@@ -157,71 +157,79 @@ func StartInteractiveBuild() error {
 	}
 	display.PrintSuccess(fmt.Sprintf("Go命令设置为: %s", config.GoCommand))
 
-	// 4. 询问是否构建所有平台
+	// 4. 选择目标平台
 	display.PrintSubSection("选择目标平台")
-	display.PrintPrompt("是否构建所有支持的平台和架构? (y/N): ")
-	if answer, _ := reader.ReadString('\n'); strings.TrimSpace(strings.ToLower(answer)) == "y" {
-		config.BuildAllPlatforms = true
-		display.PrintSuccess("将构建所有支持的平台和架构")
-	} else {
-		config.BuildAllPlatforms = false
+	display.PrintHeader("可用平台:")
+	display.PrintInfo("1. Windows AMD64")
+	display.PrintInfo("2. Windows ARM64")
+	display.PrintInfo("3. Linux AMD64")
+	display.PrintInfo("4. Linux ARM64")
+	display.PrintInfo("5. Windows AMD64 + Linux AMD64 (常用)")
+	display.PrintInfo("6. 全部平台")
+	display.PrintEmptyLine()
+	display.PrintInputPrompt(fmt.Sprintf("请输入平台编号 (默认: 当前系统 %s/%s): ", runtime.GOOS, runtime.GOARCH))
 
-		// 显示可用平台列表
-		display.PrintEmptyLine()
-		display.PrintHeader("可用平台:")
-		display.PrintInfo("1. Windows AMD64")
-		display.PrintInfo("2. Windows ARM64")
-		display.PrintInfo("3. Linux AMD64")
-		display.PrintInfo("4. Linux ARM64")
+	numbers, _ := reader.ReadString('\n')
+	selections := strings.Fields(numbers)
+	selectedPlatforms := make(map[builder.Platform]bool)
 
-		// 获取用户选择
-		display.PrintEmptyLine()
-		display.PrintInputPrompt("请输入平台编号（用空格分隔，例如 '1 3 4'）: ")
-		if numbers, err := reader.ReadString('\n'); err == nil {
-			selected := make(map[int]bool)
-			for _, num := range strings.Fields(numbers) {
-				switch num {
-				case "1":
-					selected[1] = true
-				case "2":
-					selected[2] = true
-				case "3":
-					selected[3] = true
-				case "4":
-					selected[4] = true
-				}
-			}
-
-			// 如果没有选择任何平台，默认使用当前平台
-			if len(selected) == 0 {
-				display.PrintWarning("未选择任何平台，将只构建 Windows AMD64 版本")
-				config.Platforms = []builder.Platform{
-					{OS: "windows", Arch: "amd64"},
-				}
-			} else {
-				// 根据选择添加平台
-				var platforms []builder.Platform
-				display.PrintEmptyLine()
-				display.PrintHeader("已选择的平台:")
-				if selected[1] {
-					platforms = append(platforms, builder.Platform{OS: "windows", Arch: "amd64"})
-					display.PrintInfo("- Windows AMD64")
-				}
-				if selected[2] {
-					platforms = append(platforms, builder.Platform{OS: "windows", Arch: "arm64"})
-					display.PrintInfo("- Windows ARM64")
-				}
-				if selected[3] {
-					platforms = append(platforms, builder.Platform{OS: "linux", Arch: "amd64"})
-					display.PrintInfo("- Linux AMD64")
-				}
-				if selected[4] {
-					platforms = append(platforms, builder.Platform{OS: "linux", Arch: "arm64"})
-					display.PrintInfo("- Linux ARM64")
-				}
-				config.Platforms = platforms
+	if len(selections) == 0 {
+		// 默认情况：使用当前系统平台
+		defaultPlatform := builder.Platform{OS: runtime.GOOS, Arch: runtime.GOARCH}
+		// 确保默认平台是受支持的
+		isSupported := false
+		for _, p := range builder.SupportedPlatforms {
+			if p == defaultPlatform {
+				isSupported = true
+				break
 			}
 		}
+		if isSupported {
+			selectedPlatforms[defaultPlatform] = true
+			display.PrintInfo(fmt.Sprintf("未输入，使用默认平台: %s/%s", defaultPlatform.OS, defaultPlatform.Arch))
+		} else {
+			display.PrintWarning(fmt.Sprintf("当前系统平台 %s/%s 不在支持列表中，请手动选择。", defaultPlatform.OS, defaultPlatform.Arch))
+		}
+	} else {
+		for _, num := range selections {
+			switch num {
+			case "1":
+				selectedPlatforms[builder.Platform{OS: "windows", Arch: "amd64"}] = true
+			case "2":
+				selectedPlatforms[builder.Platform{OS: "windows", Arch: "arm64"}] = true
+			case "3":
+				selectedPlatforms[builder.Platform{OS: "linux", Arch: "amd64"}] = true
+			case "4":
+				selectedPlatforms[builder.Platform{OS: "linux", Arch: "arm64"}] = true
+			case "5":
+				selectedPlatforms[builder.Platform{OS: "windows", Arch: "amd64"}] = true
+				selectedPlatforms[builder.Platform{OS: "linux", Arch: "amd64"}] = true
+			case "6":
+				config.BuildAllPlatforms = true
+			default:
+				display.PrintWarning(fmt.Sprintf("无效的平台编号: %s", num))
+			}
+		}
+	}
+
+	if config.BuildAllPlatforms {
+		display.PrintSuccess("将构建所有支持的平台和架构")
+	} else if len(selectedPlatforms) > 0 {
+		var platforms []builder.Platform
+		display.PrintEmptyLine()
+		display.PrintHeader("已选择的平台:")
+		// 按照支持列表的顺序添加，保证输出一致性
+		for _, p := range builder.SupportedPlatforms {
+			if selectedPlatforms[p] {
+				platforms = append(platforms, p)
+				display.PrintInfo(fmt.Sprintf("- %s %s", p.OS, p.Arch))
+			}
+		}
+		config.Platforms = platforms
+	} else {
+		// 如果没有有效选择且不是构建全部，则提示并退出或采取默认行为
+		display.PrintWarning("未选择任何有效平台，将不执行任何构建。")
+		return nil // 或者可以设置一个默认值
 	}
 
 	// 创建并执行构建器
