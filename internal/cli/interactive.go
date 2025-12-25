@@ -164,8 +164,10 @@ func StartInteractiveBuild() error {
 	display.PrintInfo("2. Windows ARM64")
 	display.PrintInfo("3. Linux AMD64")
 	display.PrintInfo("4. Linux ARM64")
-	display.PrintInfo("5. Windows AMD64 + Linux AMD64 (常用)")
-	display.PrintInfo("6. 全部平台")
+	display.PrintInfo("5. macOS AMD64")
+	display.PrintInfo("6. macOS ARM64")
+	display.PrintInfo("7. Windows AMD64 + Linux AMD64 (常用)")
+	display.PrintInfo("8. 全部平台")
 	display.PrintEmptyLine()
 	display.PrintInputPrompt(fmt.Sprintf("请输入平台编号 (默认: 当前系统 %s/%s): ", runtime.GOOS, runtime.GOARCH))
 
@@ -202,9 +204,13 @@ func StartInteractiveBuild() error {
 			case "4":
 				selectedPlatforms[builder.Platform{OS: "linux", Arch: "arm64"}] = true
 			case "5":
+				selectedPlatforms[builder.Platform{OS: "darwin", Arch: "amd64"}] = true
+			case "6":
+				selectedPlatforms[builder.Platform{OS: "darwin", Arch: "arm64"}] = true
+			case "7":
 				selectedPlatforms[builder.Platform{OS: "windows", Arch: "amd64"}] = true
 				selectedPlatforms[builder.Platform{OS: "linux", Arch: "amd64"}] = true
-			case "6":
+			case "8":
 				config.BuildAllPlatforms = true
 			default:
 				display.PrintWarning(fmt.Sprintf("无效的平台编号: %s", num))

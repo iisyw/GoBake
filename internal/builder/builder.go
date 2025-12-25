@@ -50,6 +50,8 @@ var SupportedPlatforms = []Platform{
 	{OS: "windows", Arch: "arm64"},
 	{OS: "linux", Arch: "amd64"},
 	{OS: "linux", Arch: "arm64"},
+	{OS: "darwin", Arch: "amd64"},
+	{OS: "darwin", Arch: "arm64"},
 }
 
 // 获取Go环境变量
